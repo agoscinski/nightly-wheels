@@ -1,0 +1,92 @@
+name: librascal
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # run at 10am every day
+    - cron: '0 10 * * *'
+  pull_request:
+    # Check all PR
+
+jobs:
+  check-new-commits:
+    runs-on: ubuntu-latest
+    outputs:
+      n_commits: ${{ steps.check-commits.outputs.n_commits }}
+    steps:
+      - name: clone librascal
+        uses: actions/checkout@v3
+        with:
+          repository: lab-cosmo/librascal
+
+      - id: check-commits
+        name: check for recent commits
+        run: echo "n_commits=$(git log --oneline --since='24 hours ago' | wc -l)" >> "$GITHUB_OUTPUT"
+
+  build-wheels:
+    needs: check-new-commits
+    # build wheels on PR or if there are new commits
+    if: ${{ needs.check-new-commits.outputs.n_commits > 0 || github.event_name == 'pull_request' }}
+
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux2014_x86_64
+    strategy:
+      matrix:
+        python:
+          - python3.7
+          - python3.8
+          - python3.9
+          - python3.10
+          # This does not build, it requires a pybind11 update on librascal side
+          # - python3.11
+
+    steps:
+      - name: clone librascal
+        uses: actions/checkout@v3
+        with:
+          repository: lab-cosmo/librascal
+
+      - name: build wheels
+        run: ${{ matrix.python }} -m build --outdir wheelhouse/ .
+
+      - name: run auditwheel
+        run: |
+          auditwheel repair --exclude librascal.so wheelhouse/*.whl
+          # remove the non-manylinux wheel
+          rm -rf wheelhouse/*linux_x86_64.whl
+
+      - name: upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: |
+            wheelhouse/*.whl
+            wheelhouse/*.tar.gz
+
+  update-gh-pages:
+    needs: build-wheels
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v3
+
+      - name: download wheels
+        uses: actions/download-artifact@v3
+        with:
+          name: wheels
+          path: rascal
+
+      - name: create index file
+        run: python create-index.py rascal > rascal/index.html
+
+      - name: deploy to gh-pages
+        # only deploy from schedule/push to main branch
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'push' }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./rascal
+          destination_dir: rascal

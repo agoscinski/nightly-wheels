@@ -26,8 +26,8 @@ jobs:
 
   build-wheels:
     needs: check-new-commits
-    # build wheels on PR or if there are new commits
-    if: ${{ needs.check-new-commits.outputs.n_commits > 0 || github.event_name == 'pull_request' }}
+    # build wheels for new commits on librascal or this repo
+    if: ${{ needs.check-new-commits.outputs.n_commits > 0 || github.event_name == 'pull_request' || github.event_name == 'push' }}
 
     runs-on: ${{ matrix.os }}
     strategy:

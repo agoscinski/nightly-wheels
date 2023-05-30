@@ -3,10 +3,16 @@
 This repository contains code to build a bunch of lab-cosmo Python projects each
 day, and make the pre-built wheels directly installable with pip.
 
-- https://github.com/lab-cosmo/librascal
+- https://github.com/lab-cosmo/librascal: library to generate representations
+  for atomic-scale learning
 
-```
-pip install --extra-index-url http://luthaf.fr/nightly-wheels/ rascal
+```bash
+# install rascal dependencies first
+pip install numpy>=1.16.0 scipy>=1.4.0 matplotlib>=2.0.0 ase>=3.19.0
+
+# finally install librascal itself (this can not be a single step since there is
+# another package called rascal on PyPI)
+pip install --index-url https://luthaf.fr/nightly-wheels/ rascal
 ```
 
 

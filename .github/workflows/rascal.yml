@@ -67,6 +67,7 @@ jobs:
             echo $LD_LIBRARY_PATH
             export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/rascal-0.0.0.data/data/lib
             echo $LD_LIBRARY_PATH
+            ls -lh
             auditwheel repair -w {dest_dir} {wheel}
           CIBW_ENVIRONMENT: LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/rascal-0.0.0.data/data/lib
 
